@@ -92,7 +92,6 @@
         .section { display: none; height: 100%; }
         .section.active { display: flex; flex-direction: column; animation: flicker 0.1s infinite alternate; }
 
-        /* НОВЫЕ СТИЛИ ДЛЯ БОКОВОЙ ПАНЕЛИ ЧАТА */
         .chat-container {
             display: flex;
             gap: 20px;
@@ -236,8 +235,7 @@
                 <div class="chat-container">
                     <div class="user-sidebar">
                         <h4>ACTIVE_ENTITIES</h4>
-                        <div id="users-list-sidebar">
-                            </div>
+                        <div id="users-list-sidebar"></div>
                     </div>
                     <div class="chat-main">
                         <div id="chat-window" class="display-area"></div>
@@ -345,25 +343,21 @@
         document.getElementById('content-box').style.display = 'block';
         document.getElementById('user-tag').innerText = currentUserName.toUpperCase();
         
-        // Регистрируем пользователя в общем списке
         db.ref('users/' + currentUserName).set({ lastSeen: Date.now() });
 
         initChatListener(); 
         initNewsListener(); 
-        loadLocalDiary();
+        initDiaryListener(); // Загрузка дневника из Firebase
         initPresence();
-        initSidebarListener(); // Запуск боковой панели
+        initSidebarListener(); 
 
         document.getElementById('chat-msg').addEventListener('keypress', (e) => { if(e.key==='Enter') sendChat(); });
     }
 
-    // ЛОГИКА БОКОВОЙ ПАНЕЛИ
     function initSidebarListener() {
-        // Следим за всеми пользователями
         db.ref('users').on('value', (snapshot) => {
             const sidebar = document.getElementById('users-list-sidebar');
             sidebar.innerHTML = "";
-            
             snapshot.forEach((child) => {
                 const userName = child.key;
                 const userEl = document.createElement('div');
@@ -375,7 +369,6 @@
                 };
                 sidebar.appendChild(userEl);
 
-                // Проверяем онлайн статус для каждого
                 db.ref('presence/' + userName).on('value', (pSnap) => {
                     const dot = document.getElementById('dot-' + userName);
                     if (dot) {
@@ -440,30 +433,49 @@
         showVoidModal("УНИЧТОЖИТЬ ЗАПИСЬ?", 'confirm', (res) => { if (res) db.ref(path + '/' + id).remove(); });
     }
 
+    // --- НОВАЯ ЛОГИКА ДНЕВНИКА ЧЕРЕЗ FIREBASE ---
     function saveDiary() {
-        const txt = document.getElementById('diary-input').value; if (!txt) return;
-        const entries = JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]");
-        entries.unshift({date: new Date().toLocaleString(), text: txt});
-        localStorage.setItem('diary_'+currentUserName, JSON.stringify(entries));
-        document.getElementById('diary-input').value = ""; renderDiary(entries);
+        const txt = document.getElementById('diary-input').value; 
+        if (!txt) return;
+        
+        const ref = db.ref('diaries/' + currentUserName).push();
+        ref.set({
+            id: ref.key,
+            date: new Date().toLocaleString(),
+            text: txt,
+            timestamp: Date.now()
+        });
+        
+        document.getElementById('diary-input').value = "";
     }
 
-    function renderDiary(e) {
-        document.getElementById('diary-list').innerHTML = e.map((i, idx) => `
-            <div class="log-entry">
-                <div style="display:flex; justify-content:space-between;"><small>${i.date}</small>
-                <span class="del-btn" onclick="deleteDiaryEntry(${idx})">[×]</span></div>
-                <div style="margin-top:10px;">${i.text}</div>
-            </div>`).join('');
+    function initDiaryListener() {
+        db.ref('diaries/' + currentUserName).on('value', (s) => {
+            const list = document.getElementById('diary-list');
+            list.innerHTML = "";
+            let items = [];
+            s.forEach(child => {
+                items.unshift(child.val());
+            });
+            
+            list.innerHTML = items.map(i => `
+                <div class="log-entry">
+                    <div style="display:flex; justify-content:space-between;">
+                        <small>${i.date}</small>
+                        <span class="del-btn" onclick="deleteDiaryEntry('${i.id}')">[×]</span>
+                    </div>
+                    <div style="margin-top:10px;">${i.text}</div>
+                </div>`).join('');
+        });
     }
 
-    function deleteDiaryEntry(idx) {
-        const entries = JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]");
-        entries.splice(idx,1); localStorage.setItem('diary_'+currentUserName, JSON.stringify(entries));
-        renderDiary(entries);
+    function deleteDiaryEntry(id) {
+        showVoidModal("УНИЧТОЖИТЬ ЗАПИСЬ?", 'confirm', (res) => {
+            if (res) db.ref('diaries/' + currentUserName + '/' + id).remove();
+        });
     }
+    // -------------------------------------------
 
-    function loadLocalDiary() { renderDiary(JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]")); }
     function logout() { auth.signOut().then(() => location.reload()); }
 
     function initPresence() {
