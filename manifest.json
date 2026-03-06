@@ -1,0 +1,21 @@
+{
+    "name": "TERMINAL | THE VOID",
+    "short_name": "VOID",
+    "description": "Крипипаста Терминал",
+    "start_url": "index.html",
+    "display": "fullscreen",
+    "background_color": "#050505",
+    "theme-color": "#8b0000",
+    "icons": [
+      {
+        "src": "img/Крипи сообщество.jpg",
+        "sizes": "192x192",
+        "type": "image/jpeg"
+      },
+      {
+        "src": "img/Крипи сообщество.jpg",
+        "sizes": "512x512",
+        "type": "image/jpeg"
+      }
+    ]
+  }

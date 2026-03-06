@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TERMINAL | THE VOID</title>
+    
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VOID Terminal">
+    
+    <link rel="icon" href="img/Крипи сообщество.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="img/Крипи сообщество.jpg">
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        :root { 
+            --blood-red: #8b0000; 
+            --void-black: #050505; 
+            --text-gray: #666; 
+            --terminal-green: #00ff41; 
+        }
+
+        body, html { 
+            background-color: var(--void-black); 
+            color: var(--text-gray); 
+            font-family: 'Courier New', monospace; 
+            margin: 0; padding: 0;
+            height: 100vh; width: 100vw; 
+            overflow: hidden; 
+            display: flex; justify-content: center; align-items: center; 
+        }
+
+        .crt-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)); 
+            background-size: 100% 4px, 3px 100%; 
+            pointer-events: none; z-index: 1000; 
+            opacity: 0.6;
+        }
+
+        .scanline {
+            width: 100%; height: 100px; z-index: 1001; position: absolute;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.1; pointer-events: none;
+            animation: scanline 8s linear infinite;
+        }
+
+        .terminal { 
+            width: 98%; height: 95vh; 
+            background: rgba(8, 8, 8, 0.98); 
+            border: 1px solid #222; 
+            display: flex; flex-direction: column; 
+            box-shadow: 0 0 50px rgba(0,0,0,1); 
+            position: relative; 
+        }
+
+        /* НАВИГАЦИЯ (КАК НА 1 ФОТО) */
+        .nav { display: flex; border-bottom: 1px solid #222; background: #111; }
+        .nav-item { 
+            padding: 15px 30px; cursor: pointer; border: 1px solid #222; 
+            text-transform: uppercase; font-size: 0.9rem; color: var(--text-gray);
+            transition: all 0.1s; margin-right: -1px;
+        }
+        .nav-item:hover, .nav-item.active { 
+            color: #fff !important; background: var(--blood-red) !important; 
+            border: 1px solid #fff !important; box-shadow: 0 0 15px var(--blood-red); z-index: 10;
+        }
+
+        .content { flex-grow: 1; padding: 25px; overflow-y: auto; display: none; }
+        .section { display: none; height: 100%; }
+        .section.active { display: flex; flex-direction: column; animation: flicker 0.1s infinite alternate; }
+
+        /* УВЕЛИЧЕННЫЙ СТАТУС-БАР */
+        .status-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 25px;
+            background: #080808; border-top: 1px solid #222; 
+            font-size: 1rem; color: #444;
+        }
+
+        #sys-time { 
+            color: #eee; 
+            font-weight: bold; 
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+            font-size: 1.1rem;
+        }
+
+        input, textarea { 
+            background: #000; border: 1px solid #333; color: var(--terminal-green); 
+            padding: 12px; margin: 10px 0; width: 100%; box-sizing: border-box; 
+            font-family: inherit; font-size: 1rem; outline: none;
+        }
+        input:focus { border-color: var(--blood-red); box-shadow: 0 0 5px var(--blood-red); }
+
+        button { 
+            background: #0a0a0a; color: var(--blood-red); border: 1px solid var(--blood-red); 
+            padding: 10px 25px; cursor: pointer; text-transform: uppercase; font-weight: bold;
+        }
+        button:hover { background: var(--blood-red); color: #000; box-shadow: 0 0 15px var(--blood-red); }
+
+        .display-area { flex-grow: 1; border: 1px solid #222; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 15px; }
+        .log-entry { background: rgba(20, 0, 0, 0.1); border-left: 3px solid var(--blood-red); padding: 15px; margin-bottom: 15px; border-bottom: 1px solid #1a0000; }
+        .del-btn { color: #444; cursor: pointer; font-size: 0.7rem; border: 1px solid #222; padding: 2px 5px; margin-left: 10px; }
+        .del-btn:hover { color: var(--blood-red); border-color: var(--blood-red); }
+
+        #custom-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:10000; justify-content:center; align-items:center; }
+        .modal-box { background:#080808; border:1px solid var(--blood-red); padding:30px; width:400px; text-align:center; box-shadow: 0 0 30px rgba(139, 0, 0, 0.4); }
+
+        @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
+        @keyframes flicker { 0% { opacity: 0.99; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="crt-overlay"></div>
+<div class="scanline"></div>
+
+<div id="custom-modal">
+    <div class="modal-box">
+        <h2 id="modal-title" style="color:var(--blood-red); margin-top:0; letter-spacing:4px;">SYSTEM ALERT</h2>
+        <p id="modal-text" style="color:var(--terminal-green); margin-bottom:25px;"></p>
+        <div style="display:flex; gap:15px; justify-content:center;">
+            <button id="modal-ok-btn">ПОДТВЕРДИТЬ</button>
+            <button id="modal-cancel-btn" style="border-color:#444; color:#444;">ОТМЕНА</button>
+        </div>
+    </div>
+</div>
+
+<div class="terminal">
+    <div id="auth-screen" style="padding: 100px; text-align: center;">
+        <h1 style="color: var(--blood-red); letter-spacing: 15px; font-size: 3.5rem; margin-bottom: 10px;">SECURE ACCESS</h1>
+        <p style="margin-bottom: 40px; font-size: 0.8rem; letter-spacing: 2px; color: #444;">[ ПОИСК СИГНАЛА... ]</p>
+        <input type="email" id="email-input" style="width: 450px;" value="silentblade@void.com">
+        <br>
+        <input type="password" id="pass-input" style="width: 450px;" placeholder="SECRET_KEY" autofocus>
+        <br><br>
+        <button onclick="handleAuth()">ВХОД В СИСТЕМУ</button>
+    </div>
+
+    <div id="main-ui" style="display: none; height: 100%; flex-direction: column;">
+        <div class="nav">
+            <div class="nav-item active" onclick="switchTab('diary', this)">Архив Тайн</div>
+            <div class="nav-item" onclick="switchTab('chat', this)">Общая Бездна</div>
+            <div class="nav-item" onclick="switchTab('news', this)">Сводка Происшествий</div>
+            <div class="nav-item" onclick="logout()" style="margin-left: auto; border-left: 1px solid #222;">ВЫХОД</div>
+        </div>
+
+        <div class="content" id="content-box">
+            <div id="diary" class="section active">
+                <h2>ЛИЧНЫЙ ЛОГ: <span id="user-tag" style="color: var(--blood-red);"></span></h2>
+                <textarea id="diary-input" rows="3" placeholder="Записать секрет..."></textarea>
+                <button onclick="saveDiary()">ЗАПЕЧАТАТЬ</button>
+                <div id="diary-list" style="margin-top: 20px;"></div>
+            </div>
+
+            <div id="chat" class="section">
+                <h2>КАНАЛ СВЯЗИ</h2>
+                <div id="chat-window" class="display-area"></div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chat-msg" placeholder="Сообщение...">
+                    <button onclick="sendChat()">SEND</button>
+                </div>
+            </div>
+
+            <div id="news" class="section">
+                <h2>СВОДКА ПРОИСШЕСТВИЙ</h2>
+                <div style="background: rgba(40, 0, 0, 0.2); padding: 15px; border: 1px dashed var(--blood-red); margin-bottom: 20px;">
+                    <input type="text" id="news-title" placeholder="ЗАГОЛОВОК...">
+                    <textarea id="news-text" rows="3" placeholder="ОПИСАНИЕ..."></textarea>
+                    <button id="post-btn" onclick="postNews()">ОПУБЛИКОВАТЬ</button>
+                </div>
+                <div id="news-list"></div>
+            </div>
+        </div>
+
+        <div class="status-footer">
+            <div id="sys-time">DATE: 06/03/2026 | TIME: 18:23:01</div>
+            <div style="color: var(--blood-red); font-weight: bold; letter-spacing: 2px; animation: flicker 0.5s infinite alternate;">THREAT LEVEL: CRITICAL</div>
+            <div id="sys-coords" style="font-size: 0.8rem;">POS: 43.2389, 76.8897</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAbIb4Q6dwBX5ZJGV6231Fd4DsNJH4Pi94",
+        authDomain: "mycreepypastasite.firebaseapp.com",
+        databaseURL: "https://mycreepypastasite-default-rtdb.firebaseio.com/",
+        projectId: "mycreepypastasite",
+        storageBucket: "mycreepypastasite.firebasestorage.app",
+        messagingSenderId: "760154862509",
+        appId: "1:760154862509:web:e28ce756010f96240e2724"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    let currentUserName = "";
+
+    // ОБНОВЛЕНИЕ ВРЕМЕНИ
+    setInterval(() => {
+        const now = new Date();
+        const d = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+        const t = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('sys-time').innerText = `DATE: ${d} | TIME: ${t}`;
+    }, 1000);
+
+    // Функция включения полноэкранного режима
+    function goFullScreen() {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) docEl.requestFullscreen();
+        else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+        else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+    }
+
+    function showVoidModal(text, type, callback) {
+        const modal = document.getElementById('custom-modal');
+        document.getElementById('modal-text').innerText = text;
+        modal.style.display = 'flex';
+        document.getElementById('modal-ok-btn').onclick = () => { modal.style.display = 'none'; if(callback) callback(true); };
+        document.getElementById('modal-cancel-btn').onclick = () => { modal.style.display = 'none'; if(callback) callback(false); };
+    }
+
+    async function handleAuth() {
+        // Пытаемся убрать рамки браузера при входе
+        try { goFullScreen(); } catch (e) {}
+        
+        const email = document.getElementById('email-input').value;
+        const pass = document.getElementById('pass-input').value;
+        try {
+            const res = await auth.signInWithEmailAndPassword(email, pass);
+            enterVoid(res.user.email);
+        } catch (e) {
+            if (e.code === 'auth/user-not-found') {
+                const res = await auth.createUserWithEmailAndPassword(email, pass);
+                enterVoid(res.user.email);
+            } else { showVoidModal("ОШИБКА ДОСТУПА", 'alert'); }
+        }
+    }
+
+    function enterVoid(email) {
+        currentUserName = email.split('@')[0];
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'flex';
+        document.getElementById('content-box').style.display = 'block';
+        document.getElementById('user-tag').innerText = currentUserName.toUpperCase();
+        initChatListener(); initNewsListener(); loadLocalDiary();
+        document.getElementById('chat-msg').addEventListener('keypress', (e) => { if(e.key==='Enter') sendChat(); });
+    }
+
+    function switchTab(id, el) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); el.classList.add('active');
+    }
+
+    function sendChat() {
+        const inp = document.getElementById('chat-msg'); if (!inp.value.trim()) return;
+        const ref = db.ref('chat').push();
+        ref.set({ id: ref.key, user: currentUserName, text: inp.value, time: Date.now() });
+        inp.value = "";
+    }
+
+    function initChatListener() {
+        db.ref('chat').limitToLast(40).on('value', (s) => {
+            const win = document.getElementById('chat-window'); win.innerHTML = "";
+            s.forEach(c => {
+                const m = c.val();
+                win.innerHTML += `<div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+                    <span><b style="color:var(--blood-red)">${m.user.toUpperCase()}:</b> ${m.text}</span>
+                    ${m.user === currentUserName ? `<span class="del-btn" onclick="deleteEntry('chat', '${m.id}')">[×]</span>` : ''}
+                </div>`;
+            });
+            win.scrollTop = win.scrollHeight;
+        });
+    }
+
+    async function postNews() {
+        const title = document.getElementById('news-title').value;
+        const text = document.getElementById('news-text').value;
+        if (!title || !text) return;
+        const ref = db.ref('news').push();
+        await ref.set({ id: ref.key, author: currentUserName, title: title.toUpperCase(), text: text, time: Date.now() });
+        document.getElementById('news-title').value = ""; document.getElementById('news-text').value = "";
+    }
+
+    function initNewsListener() {
+        db.ref('news').on('value', (s) => {
+            const list = document.getElementById('news-list'); list.innerHTML = "";
+            let items = []; s.forEach(c => items.unshift(c.val()));
+            list.innerHTML = items.map(n => `
+                <div class="log-entry">
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>[${n.title}]</b>
+                        ${n.author === currentUserName ? `<span class="del-btn" onclick="deleteEntry('news', '${n.id}')">[УДАЛИТЬ]</span>` : ''}
+                    </div>
+                    <small>АГЕНТ: ${n.author}</small>
+                    <p style="color: var(--terminal-green)">${n.text}</p>
+                </div>`).join('');
+        });
+    }
+
+    function deleteEntry(path, id) {
+        showVoidModal("УНИЧТОЖИТЬ ЗАПИСЬ?", 'confirm', (res) => { if (res) db.ref(path + '/' + id).remove(); });
+    }
+
+    function saveDiary() {
+        const txt = document.getElementById('diary-input').value; if (!txt) return;
+        const entries = JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]");
+        entries.unshift({date: new Date().toLocaleString(), text: txt});
+        localStorage.setItem('diary_'+currentUserName, JSON.stringify(entries));
+        document.getElementById('diary-input').value = ""; renderDiary(entries);
+    }
+
+    function renderDiary(e) {
+        document.getElementById('diary-list').innerHTML = e.map((i, idx) => `
+            <div class="log-entry">
+                <div style="display:flex; justify-content:space-between;"><small>${i.date}</small>
+                <span class="del-btn" onclick="deleteDiaryEntry(${idx})">[×]</span></div>
+                <div style="margin-top:10px;">${i.text}</div>
+            </div>`).join('');
+    }
+
+    function deleteDiaryEntry(idx) {
+        const entries = JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]");
+        entries.splice(idx,1); localStorage.setItem('diary_'+currentUserName, JSON.stringify(entries));
+        renderDiary(entries);
+    }
+
+    function loadLocalDiary() { renderDiary(JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]")); }
+    function logout() { auth.signOut().then(() => location.reload()); }
+</script>
+
+</body>
+</html>
