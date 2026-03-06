@@ -261,7 +261,13 @@
         <div class="status-footer">
             <div id="sys-time">DATE: --/--/---- | TIME: --:--:--</div>
             <div id="online-count" style="color: var(--terminal-green); font-weight: bold;">ACTIVE_AGENTS: 0</div>
-            <div style="color: var(--blood-red); font-weight: bold; letter-spacing: 2px; animation: flicker 0.5s infinite alternate;">THREAT LEVEL: CRITICAL</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.7rem; color: #444;">DATA_LOAD:</span>
+                <div style="width: 100px; height: 8px; border: 1px solid #333; position: relative; background: #000;">
+                    <div id="memory-bar" style="width: 0%; height: 100%; background: var(--terminal-green); transition: 0.5s;"></div>
+                </div>
+                <span id="memory-percent" style="font-size: 0.8rem; color: var(--terminal-green);">0%</span>
+            </div>
             <div id="sys-coords" style="font-size: 0.8rem;">POS: 43.2389, 76.8897</div>
         </div>
     </div>
@@ -387,11 +393,25 @@
     }
 
     function sendChat() {
-        const inp = document.getElementById('chat-msg'); if (!inp.value.trim()) return;
-        const ref = db.ref('chat').push();
-        ref.set({ id: ref.key, user: currentUserName, text: inp.value, time: Date.now() });
-        inp.value = "";
+    const inp = document.getElementById('chat-msg'); 
+    const val = inp.value.trim();
+    if (!val) return;
+
+    // СЕКРЕТНАЯ КОМАНДА ОЧИСТКИ БАЗЫ
+    if (val === '/clear_void') {
+        showVoidModal("ВНИМАНИЕ: УДАЛИТЬ ВСЮ ИСТОРИЮ ЧАТА И ОЧИСТИТЬ ПАМЯТЬ?", 'confirm', (res) => {
+            if (res) {
+                db.ref('chat').remove(); // Полная очистка ветки чата в Firebase
+                inp.value = "";
+            }
+        });
+        return;
     }
+
+    const ref = db.ref('chat').push();
+    ref.set({ id: ref.key, user: currentUserName, text: val, time: Date.now() });
+    inp.value = "";
+}
 
     function initChatListener() {
         db.ref('chat').limitToLast(40).on('value', (s) => {
@@ -497,6 +517,60 @@
             }
         });
     }
+
+    // Функция мониторинга памяти (базируется на количестве сообщений)
+// Функция мониторинга памяти (базируется на количестве сообщений)
+function initMemoryMonitor() {
+    const maxMessages = 10000; // Порог, после которого стоит чистить чат
+    
+    db.ref('chat').on('value', (snapshot) => {
+        const count = snapshot.numChildren();
+        let percent = Math.floor((count / maxMessages) * 100);
+        if (percent > 100) percent = 100;
+
+        const bar = document.getElementById('memory-bar');
+        const text = document.getElementById('memory-percent');
+        
+        if (bar && text) {
+            bar.style.width = percent + '%';
+            text.innerText = percent + '%';
+
+            if (percent > 80) {
+                bar.style.background = 'var(--blood-red)';
+                text.style.color = 'var(--blood-red)';
+                text.style.animation = 'flicker 0.2s infinite alternate';
+            } else {
+                bar.style.background = 'var(--terminal-green)';
+                text.style.color = 'var(--terminal-green)';
+                text.style.animation = 'none';
+            }
+        }
+    });
+}
+
+// ГЛАВНАЯ ФУНКЦИЯ ВХОДА (Исправленная версия)
+function enterVoid(email) {
+    currentUserName = email.split('@')[0];
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-ui').style.display = 'flex';
+    document.getElementById('content-box').style.display = 'block';
+    document.getElementById('user-tag').innerText = currentUserName.toUpperCase();
+    
+    // Обновляем статус в базе
+    db.ref('users/' + currentUserName).set({ lastSeen: Date.now() });
+
+    // Запускаем все системы
+    initChatListener(); 
+    initNewsListener(); 
+    initDiaryListener(); 
+    initPresence();
+    initSidebarListener(); 
+    initMemoryMonitor(); // Теперь вызывается корректно
+
+    document.getElementById('chat-msg').addEventListener('keypress', (e) => { 
+        if(e.key === 'Enter') sendChat(); 
+    });
+}
 </script>
 
 </body>
