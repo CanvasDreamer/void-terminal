@@ -199,10 +199,11 @@
         </div>
 
         <div class="status-footer">
-            <div id="sys-time">DATE: --/--/---- | TIME: --:--:--</div>
-            <div style="color: var(--blood-red); font-weight: bold; letter-spacing: 2px; animation: flicker 0.5s infinite alternate;">THREAT LEVEL: CRITICAL</div>
-            <div id="sys-coords" style="font-size: 0.8rem;">POS: 43.2389, 76.8897</div>
-        </div>
+    <div id="sys-time">DATE: --/--/---- | TIME: --:--:--</div>
+    <div id="online-count" style="color: var(--terminal-green); font-weight: bold;">ACTIVE_AGENTS: 0</div>
+    <div style="color: var(--blood-red); font-weight: bold; letter-spacing: 2px; animation: flicker 0.5s infinite alternate;">THREAT LEVEL: CRITICAL</div>
+    <div id="sys-coords" style="font-size: 0.8rem;">POS: 43.2389, 76.8897</div>
+</div>
     </div>
 </div>
 
@@ -365,10 +366,34 @@
 
     function loadLocalDiary() { renderDiary(JSON.parse(localStorage.getItem('diary_'+currentUserName) || "[]")); }
     function logout() { auth.signOut().then(() => location.reload()); }
+    // ОТСЛЕЖИВАНИЕ ОНЛАЙН-СТАТУСА
+function initPresence() {
+    const onlineRef = db.ref('.info/connected'); // Системный путь Firebase
+    const myPresenceRef = db.ref('presence/' + currentUserName);
+
+    onlineRef.on('value', (snapshot) => {
+        if (snapshot.val() === true) {
+            // Когда мы подключены, ставим статус "online"
+            // onDisconnect() сработает сам, когда связь прервется
+            myPresenceRef.onDisconnect().remove();
+            myPresenceRef.set(true);
+        }
+    });
+
+    // Слушатель для обновления счетчика на экране
+    db.ref('presence').on('value', (snapshot) => {
+        const count = snapshot.numChildren();
+        const statusElement = document.getElementById('online-count');
+        if (statusElement) {
+            statusElement.innerText = `ACTIVE_AGENTS: ${count}`;
+        }
+    });
+}
 </script>
 
 </body>
 </html>
+
 
 
 
