@@ -2,24 +2,23 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta property="og:title" content="TERMINAL | THE VOID">
-<meta property="og:description" content="[СИСТЕМА ДОСТУПА В БЕЗДНУ] Введите идентификатор и секретный ключ.">
-<meta property="og:image" content="https://CanvasDreamer.github.io/void-terminal/img/Крипи сообщество.jpg">
-<meta property="og:url" content="https://CanvasDreamer.github.io/void-terminal/">
-<meta property="og:type" content="website">
-
-<meta name="twitter:card" content="summary_large_image">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TERMINAL | THE VOID</title>
-    
+
+    <meta property="og:title" content="TERMINAL | THE VOID">
+    <meta property="og:description" content="[СИСТЕМА ДОСТУПА В БЕЗДНУ] Введите идентификатор и секретный ключ.">
+    <meta property="og:image" content="https://CanvasDreamer.github.io/void-terminal/img/logo.jpg">
+    <meta property="og:url" content="https://CanvasDreamer.github.io/void-terminal/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="VOID Terminal">
     
-    <link rel="icon" href="img/Крипи сообщество.jpg" type="image/jpeg">
-    <link rel="apple-touch-icon" href="img/Крипи сообщество.jpg">
-    
+    <link rel="icon" href="img/logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="img/logo.jpg">
     <link rel="manifest" href="manifest.json">
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -34,7 +33,7 @@
             --terminal-green: #00ff41; 
         }
 
-        /* ИСПРАВЛЕНИЕ ЖЕЛТОГО ФОНА АВТОЗАПОЛНЕНИЯ */
+        /* УБИРАЕМ ЖЕЛТЫЙ ФОН ПРИ АВТОЗАПОЛНЕНИИ */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -60,8 +59,7 @@
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)); 
             background-size: 100% 4px, 3px 100%; 
-            pointer-events: none; z-index: 1000; 
-            opacity: 0.6;
+            pointer-events: none; z-index: 1000; opacity: 0.6;
         }
 
         .scanline {
@@ -73,11 +71,9 @@
 
         .terminal { 
             width: 98%; height: 95vh; 
-            background: rgba(8, 8, 8, 0.98); 
-            border: 1px solid #222; 
+            background: rgba(8, 8, 8, 0.98); border: 1px solid #222; 
             display: flex; flex-direction: column; 
-            box-shadow: 0 0 50px rgba(0,0,0,1); 
-            position: relative; 
+            box-shadow: 0 0 50px rgba(0,0,0,1); position: relative; 
         }
 
         .nav { display: flex; border-bottom: 1px solid #222; background: #111; }
@@ -97,17 +93,13 @@
 
         .status-footer {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 25px;
-            background: #080808; border-top: 1px solid #222; 
+            padding: 10px 25px; background: #080808; border-top: 1px solid #222; 
             font-size: 1rem; color: #444;
         }
 
         #sys-time { 
-            color: #eee; 
-            font-weight: bold; 
-            letter-spacing: 2px;
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-            font-size: 1.1rem;
+            color: #eee; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3); font-size: 1.1rem;
         }
 
         input, textarea { 
@@ -158,7 +150,6 @@
         
         <input type="email" id="email-input" style="width: 450px;" placeholder="USER_IDENTIFICATION@VOID.COM" autocomplete="email">
         <br>
-        
         <input type="password" id="pass-input" style="width: 450px;" placeholder="SECRET_KEY" autocomplete="new-password" autofocus>
         
         <br><br>
@@ -202,7 +193,7 @@
         </div>
 
         <div class="status-footer">
-            <div id="sys-time">DATE: 06/03/2026 | TIME: 18:23:01</div>
+            <div id="sys-time">DATE: --/--/---- | TIME: --:--:--</div>
             <div style="color: var(--blood-red); font-weight: bold; letter-spacing: 2px; animation: flicker 0.5s infinite alternate;">THREAT LEVEL: CRITICAL</div>
             <div id="sys-coords" style="font-size: 0.8rem;">POS: 43.2389, 76.8897</div>
         </div>
@@ -235,9 +226,7 @@
     function goFullScreen() {
         const docEl = document.documentElement;
         if (docEl.requestFullscreen) docEl.requestFullscreen();
-        else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
         else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-        else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
     }
 
     function showVoidModal(text, type, callback) {
@@ -250,15 +239,9 @@
 
     async function handleAuth() {
         try { goFullScreen(); } catch (e) {}
-        
         const email = document.getElementById('email-input').value;
         const pass = document.getElementById('pass-input').value;
-        
-        if(!email || !pass) {
-            showVoidModal("ВВЕДИТЕ ДАННЫЕ ДОСТУПА", 'alert');
-            return;
-        }
-
+        if(!email || !pass) { showVoidModal("ВВЕДИТЕ ДАННЫЕ ДОСТУПА", 'alert'); return; }
         try {
             const res = await auth.signInWithEmailAndPassword(email, pass);
             enterVoid(res.user.email);
@@ -266,7 +249,7 @@
             if (e.code === 'auth/user-not-found') {
                 const res = await auth.createUserWithEmailAndPassword(email, pass);
                 enterVoid(res.user.email);
-            } else { showVoidModal("ОШИБКА ДОСТУПА: " + e.message, 'alert'); }
+            } else { showVoidModal("ОШИБКА ДОСТУПА", 'alert'); }
         }
     }
 
@@ -322,12 +305,9 @@
             let items = []; s.forEach(c => items.unshift(c.val()));
             list.innerHTML = items.map(n => `
                 <div class="log-entry">
-                    <div style="display:flex; justify-content:space-between;">
-                        <b>[${n.title}]</b>
-                        ${n.author === currentUserName ? `<span class="del-btn" onclick="deleteEntry('news', '${n.id}')">[УДАЛИТЬ]</span>` : ''}
-                    </div>
-                    <small>АГЕНТ: ${n.author}</small>
-                    <p style="color: var(--terminal-green)">${n.text}</p>
+                    <div style="display:flex; justify-content:space-between;"><b>[${n.title}]</b>
+                    ${n.author === currentUserName ? `<span class="del-btn" onclick="deleteEntry('news', '${n.id}')">[УДАЛИТЬ]</span>` : ''}</div>
+                    <small>АГЕНТ: ${n.author}</small><p style="color: var(--terminal-green)">${n.text}</p>
                 </div>`).join('');
         });
     }
@@ -364,5 +344,4 @@
 </script>
 
 </body>
-</html> 
-
+</html>
