@@ -33,7 +33,7 @@
             --terminal-green: #00ff41; 
         }
 
-        /* УБИРАЕМ ЖЕЛТЫЙ ФОН ПРИ АВТОЗАПОЛНЕНИИ */
+        /* УБИРАЕМ ЖЕЛТЫЙ ФОН АВТОЗАПОЛНЕНИЯ */
         input:-webkit-autofill,
         input:-webkit-autofill:hover, 
         input:-webkit-autofill:focus, 
@@ -148,9 +148,9 @@
         <h1 style="color: var(--blood-red); letter-spacing: 15px; font-size: 3.5rem; margin-bottom: 10px;">SECURE ACCESS</h1>
         <p style="margin-bottom: 40px; font-size: 0.8rem; letter-spacing: 2px; color: #444;">[ ПОИСК СИГНАЛА... ]</p>
         
-        <input type="email" id="email-input" style="width: 450px;" placeholder="USER_IDENTIFICATION@VOID.COM" autocomplete="email">
+        <input type="email" id="email-input" style="width: 450px;" placeholder="USER_IDENTIFICATION@VOID.COM">
         <br>
-        <input type="password" id="pass-input" style="width: 450px;" placeholder="SECRET_KEY" autocomplete="new-password" autofocus>
+        <input type="password" id="pass-input" style="width: 450px;" placeholder="SECRET_KEY" autocomplete="new-password">
         
         <br><br>
         <button onclick="handleAuth()">ВХОД В СИСТЕМУ</button>
@@ -216,6 +216,14 @@
     const db = firebase.database();
     let currentUserName = "";
 
+    // ЗАГРУЗКА ЛОГИНА ПРИ СТАРТЕ СТРАНИЦЫ
+    window.onload = function() {
+        const savedEmail = localStorage.getItem('void_login');
+        if (savedEmail) {
+            document.getElementById('email-input').value = savedEmail;
+        }
+    };
+
     setInterval(() => {
         const now = new Date();
         const d = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
@@ -241,15 +249,25 @@
         try { goFullScreen(); } catch (e) {}
         const email = document.getElementById('email-input').value;
         const pass = document.getElementById('pass-input').value;
-        if(!email || !pass) { showVoidModal("ВВЕДИТЕ ДАННЫЕ ДОСТУПА", 'alert'); return; }
+        
+        if(!email || !pass) {
+            showVoidModal("ВВЕДИТЕ ДАННЫЕ ДОСТУПА", 'alert');
+            return;
+        }
+
         try {
             const res = await auth.signInWithEmailAndPassword(email, pass);
+            // СОХРАНЯЕМ ЛОГИН В ПАМЯТЬ БРАУЗЕРА
+            localStorage.setItem('void_login', email);
             enterVoid(res.user.email);
         } catch (e) {
             if (e.code === 'auth/user-not-found') {
                 const res = await auth.createUserWithEmailAndPassword(email, pass);
+                localStorage.setItem('void_login', email);
                 enterVoid(res.user.email);
-            } else { showVoidModal("ОШИБКА ДОСТУПА", 'alert'); }
+            } else { 
+                showVoidModal("ОШИБКА ДОСТУПА", 'alert'); 
+            }
         }
     }
 
