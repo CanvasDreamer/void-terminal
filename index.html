@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="VOID Terminal">
     
     <link rel="icon" href="img/Крипи сообщество.jpg" type="image/jpeg">
-<link rel="apple-touch-icon" href="img/Крипи сообщество.jpg">
+    <link rel="apple-touch-icon" href="img/Крипи сообщество.jpg">
     
     <link rel="manifest" href="manifest.json">
     
@@ -25,6 +25,17 @@
             --void-black: #050505; 
             --text-gray: #666; 
             --terminal-green: #00ff41; 
+        }
+
+        /* ИСПРАВЛЕНИЕ ЖЕЛТОГО ФОНА АВТОЗАПОЛНЕНИЯ */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: var(--terminal-green) !important;
+            transition: background-color 5000s ease-in-out 0s;
+            box-shadow: inset 0 0 20px 20px #000 !important;
         }
 
         body, html { 
@@ -62,7 +73,6 @@
             position: relative; 
         }
 
-        /* НАВИГАЦИЯ (КАК НА 1 ФОТО) */
         .nav { display: flex; border-bottom: 1px solid #222; background: #111; }
         .nav-item { 
             padding: 15px 30px; cursor: pointer; border: 1px solid #222; 
@@ -78,7 +88,6 @@
         .section { display: none; height: 100%; }
         .section.active { display: flex; flex-direction: column; animation: flicker 0.1s infinite alternate; }
 
-        /* УВЕЛИЧЕННЫЙ СТАТУС-БАР */
         .status-footer {
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px 25px;
@@ -139,9 +148,12 @@
     <div id="auth-screen" style="padding: 100px; text-align: center;">
         <h1 style="color: var(--blood-red); letter-spacing: 15px; font-size: 3.5rem; margin-bottom: 10px;">SECURE ACCESS</h1>
         <p style="margin-bottom: 40px; font-size: 0.8rem; letter-spacing: 2px; color: #444;">[ ПОИСК СИГНАЛА... ]</p>
-        <input type="email" id="email-input" style="width: 450px;" value="silentblade@void.com">
+        
+        <input type="email" id="email-input" style="width: 450px;" placeholder="USER_IDENTIFICATION@VOID.COM" autocomplete="email">
         <br>
-        <input type="password" id="pass-input" style="width: 450px;" placeholder="SECRET_KEY" autofocus>
+        
+        <input type="password" id="pass-input" style="width: 450px;" placeholder="SECRET_KEY" autocomplete="new-password" autofocus>
+        
         <br><br>
         <button onclick="handleAuth()">ВХОД В СИСТЕМУ</button>
     </div>
@@ -206,7 +218,6 @@
     const db = firebase.database();
     let currentUserName = "";
 
-    // ОБНОВЛЕНИЕ ВРЕМЕНИ
     setInterval(() => {
         const now = new Date();
         const d = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
@@ -214,7 +225,6 @@
         document.getElementById('sys-time').innerText = `DATE: ${d} | TIME: ${t}`;
     }, 1000);
 
-    // Функция включения полноэкранного режима
     function goFullScreen() {
         const docEl = document.documentElement;
         if (docEl.requestFullscreen) docEl.requestFullscreen();
@@ -232,11 +242,16 @@
     }
 
     async function handleAuth() {
-        // Пытаемся убрать рамки браузера при входе
         try { goFullScreen(); } catch (e) {}
         
         const email = document.getElementById('email-input').value;
         const pass = document.getElementById('pass-input').value;
+        
+        if(!email || !pass) {
+            showVoidModal("ВВЕДИТЕ ДАННЫЕ ДОСТУПА", 'alert');
+            return;
+        }
+
         try {
             const res = await auth.signInWithEmailAndPassword(email, pass);
             enterVoid(res.user.email);
@@ -244,7 +259,7 @@
             if (e.code === 'auth/user-not-found') {
                 const res = await auth.createUserWithEmailAndPassword(email, pass);
                 enterVoid(res.user.email);
-            } else { showVoidModal("ОШИБКА ДОСТУПА", 'alert'); }
+            } else { showVoidModal("ОШИБКА ДОСТУПА: " + e.message, 'alert'); }
         }
     }
 
@@ -342,4 +357,4 @@
 </script>
 
 </body>
-</html>
+</html> 
